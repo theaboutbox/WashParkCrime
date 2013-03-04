@@ -1,0 +1,74 @@
+Raw Analysis of West Washington Park Neighborhood Crime Data
+========================================================
+
+Set up required libraries:
+
+```{r}
+library(data.table)
+library(zoo)
+```
+
+Processing
+----------
+
+Download the data file, read the data and save a .rda file.
+
+```{r}
+use_cached = TRUE
+csv_file = '../data/crime.csv'
+rda_file = '../data/crimeRaw.rda'
+# Use cached file because it's a big download
+if (!file.exists(csv_file) && !useCached) {
+  crimeURL <- "http://data.denvergov.org/download/gis/crime/csv/crime.csv"
+  download.file(crimeURL,destfile=csv_file,method="curl")
+  downloadTimestamp <- date()
+} else {
+  downloadTimestamp <- file.info(csv_file)$ctime
+}
+if (!file.exists(rda_file) && !useCached) {
+  crime <- read.csv(csv_file)
+  crime <- data.table(crime)
+  save(crime, downloadTimestamp, file = '../data/crimeRaw.rda')
+} else load(rda_file)
+```
+Looking at the basic structure...
+```{r}
+summary(crime)
+```
+
+Clean up data
+-------------
+
+Get the information about when a crime was reported into a more usable format
+
+```{r}
+crime <- crime[,REPORTED_DATE:=as.Date(REPORTED_DATE,"%Y-%m-%d %H:%M:%S",tz='MST')]
+crime <- crime[,year_month:=as.yearmon(REPORTED_DATE)]
+```
+
+Big Picture
+-----------
+
+Time frame for the data
+
+```{r}
+min(crime$REPORTED_DATE)
+max(crime$REPORTED_DATE)
+```
+
+Look at # of reports per neighborhood
+
+```{r, fig.width=12}
+crime_by_neighborhood = sort(table(crime$NEIGHBORHOOD_ID),decreasing=TRUE)
+plot(crime_by_neighborhood, xaxt='n', type='h')
+axis(side=1,las=2,labels=names(crime_by_neighborhood),cex.axis=0.8,at=1:length(crime_by_neighborhood))
+```
+
+Drill down a little bit
+
+```{r, fig.width=12}
+wwp_crime = crime[NEIGHBORHOOD_ID=='washington-park-west']
+wwp_crimes_by_month = table(wwp_crime$year_month)
+plot(wwp_crimes_by_month,xaxt='n',type='p')
+axis(side=1,las=2,labels=names(wwp_crimes_by_month),at=1:length(wwp_crimes_by_month),cex.axis=0.8)
+```
