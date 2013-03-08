@@ -203,7 +203,7 @@ ggplot(wwp_thefts, aes(factor(year_month), fill = OFFENSE_TYPE_ID)) + geom_bar()
 
 
 ```r
-ggplot(wwp_thefts, aes(factor(year_month), fill = OFFENSE_CATEGORY_ID)) + geom_bar() + 
+ggplot(wwp_thefts, aes(factor(year_month), fill = OFFENSE_TYPE_ID)) + geom_bar() + 
     theme(axis.text.x = element_text(size = 8, angle = -90)) + scale_y_continuous(breaks = 0:25) + 
     xlab("Month") + ylab("Number of Burglaries")
 ```
