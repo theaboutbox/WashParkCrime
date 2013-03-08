@@ -19,6 +19,10 @@ library(zoo)
 ## as.Date, as.Date.numeric
 ```
 
+```r
+library(ggplot2)
+```
+
 
 Processing
 ----------
@@ -118,9 +122,11 @@ Get the information about when a crime was reported into a more usable format
 
 
 ```r
-crime <- crime[, `:=`(REPORTED_DATE, as.Date(REPORTED_DATE, "%Y-%m-%d %H:%M:%S", 
+crime <- crime[, `:=`(REPORTED_DATE, as.POSIXct(REPORTED_DATE, format = "%Y-%m-%d %H:%M:%S", 
     tz = "MST"))]
-crime <- crime[, `:=`(year_month, as.yearmon(REPORTED_DATE))]
+crime <- crime[, `:=`(FIRST_OCCURRENCE_DATE, as.POSIXct(FIRST_OCCURRENCE_DATE, 
+    format = "%Y-%m-%d %H:%M:%S", tz = "MST"))]
+crime <- crime[, `:=`(year_month, as.yearmon(format(FIRST_OCCURRENCE_DATE)))]
 ```
 
 
@@ -135,7 +141,7 @@ min(crime$REPORTED_DATE)
 ```
 
 ```
-## [1] "2008-01-02"
+## [1] "2008-01-02 02:41:00 MST"
 ```
 
 ```r
@@ -143,18 +149,24 @@ max(crime$REPORTED_DATE)
 ```
 
 ```
-## [1] "2013-02-28"
+## [1] "2013-02-28 23:19:00 MST"
 ```
 
 
-Look at # of reports per neighborhood
+Look at # of reports per neighborhood over the last 12 months
 
 
 ```r
-crime_by_neighborhood = sort(table(crime$NEIGHBORHOOD_ID), decreasing = TRUE)
-plot(crime_by_neighborhood, xaxt = "n", type = "h")
-axis(side = 1, las = 2, labels = names(crime_by_neighborhood), cex.axis = 0.8, 
-    at = 1:length(crime_by_neighborhood))
+year_ago = max(crime$year_month) - 1
+crime_last_12_months = crime[year_month >= year_ago]
+crime_by_neighborhood = sort(table(crime_last_12_months$NEIGHBORHOOD_ID), decreasing = TRUE)
+title = paste("Police Reports by Neighborhood:", format(year_ago), "to Present")
+dotchart(crime_by_neighborhood, labels = names(crime_by_neighborhood), main = title, 
+    xlab = "# of Reports (source: data.denvergov.org)", cex = 0.7)
+```
+
+```
+## Warning: 'x' is neither a vector nor a matrix: using as.numeric(x)
 ```
 
 ![plot of chunk unnamed-chunk-6](figure/unnamed-chunk-6.png) 
@@ -172,4 +184,29 @@ axis(side = 1, las = 2, labels = names(wwp_crimes_by_month), at = 1:length(wwp_c
 ```
 
 ![plot of chunk unnamed-chunk-7](figure/unnamed-chunk-7.png) 
+
+
+
+```r
+wwp_thefts = wwp_crime[(OFFENSE_CATEGORY_ID == "burglary" | OFFENSE_CATEGORY_ID == 
+    "theft-from-motor-vehicle" | OFFENSE_CATEGORY_ID == "auto-theft") & OFFENSE_TYPE_ID != 
+    "burglary-business-by-force" & OFFENSE_TYPE_ID != "burglary-business-no-force" & 
+    OFFENSE_TYPE_ID != "theft-parts-from-vehicle"]
+ggplot(wwp_thefts, aes(factor(year_month), fill = OFFENSE_TYPE_ID)) + geom_bar() + 
+    facet_wrap(~OFFENSE_TYPE_ID) + theme(axis.text.x = element_text(size = 6, 
+    angle = -90), legend.position = "none") + ggtitle("West Wash Park Burglaries By Month") + 
+    scale_y_continuous(breaks = 0:10) + xlab("Month") + ylab("Number of Burglaries")
+```
+
+![plot of chunk unnamed-chunk-8](figure/unnamed-chunk-8.png) 
+
+
+
+```r
+ggplot(wwp_thefts, aes(factor(year_month), fill = OFFENSE_CATEGORY_ID)) + geom_bar() + 
+    theme(axis.text.x = element_text(size = 8, angle = -90)) + scale_y_continuous(breaks = 0:25) + 
+    xlab("Month") + ylab("Number of Burglaries")
+```
+
+![plot of chunk unnamed-chunk-9](figure/unnamed-chunk-9.png) 
 
